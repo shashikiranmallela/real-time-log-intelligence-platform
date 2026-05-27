@@ -1,5 +1,6 @@
 # Python
 venv/
+nenv/
 __pycache__/
 *.pyc
 
