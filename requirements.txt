@@ -1,0 +1,6 @@
+kafka-python
+fastapi
+uvicorn
+requests
+python-dotenv
+numpy

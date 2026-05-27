@@ -1,0 +1,30 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Docker
+*.pid
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Elasticsearch
+elasticsearch_data/
+
+# Node modules
+node_modules/
+
+# Build folders
+dist/
+build/
