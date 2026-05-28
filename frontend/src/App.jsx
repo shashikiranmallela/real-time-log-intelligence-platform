@@ -1,4 +1,26 @@
+import { useEffect, useState } from "react"
+
 function App() {
+
+  const [logs, setLogs] = useState([])
+  const [errorCount, setErrorCount] = useState(0)
+
+  useEffect(() => {
+
+    fetch("http://127.0.0.1:8000/api/logs")
+      .then((response) => response.json())
+      .then((data) => {
+
+        setLogs(data.logs)
+
+        const errors = data.logs.filter(
+          (log) => log.level === "ERROR"
+        )
+
+        setErrorCount(errors.length)
+      })
+
+  }, [])
 
   return (
     <div style={{
@@ -29,7 +51,7 @@ function App() {
           width: "250px"
         }}>
           <h3>Total Logs</h3>
-          <p>Loading...</p>
+          <p>{logs.length}</p>
         </div>
 
         <div style={{
@@ -39,7 +61,7 @@ function App() {
           width: "250px"
         }}>
           <h3>Error Logs</h3>
-          <p>Loading...</p>
+          <p>{errorCount}</p>
         </div>
 
         <div style={{
@@ -49,8 +71,39 @@ function App() {
           width: "250px"
         }}>
           <h3>Anomalies Detected</h3>
-          <p>Loading...</p>
+          <p>{errorCount}</p>
         </div>
+
+      </div>
+
+      <h2 style={{ marginTop: "40px" }}>
+        Recent Logs
+      </h2>
+
+      <div style={{
+        marginTop: "20px"
+      }}>
+
+        {logs.map((log, index) => (
+
+          <div
+            key={index}
+            style={{
+              backgroundColor: "#1e293b",
+              padding: "15px",
+              borderRadius: "10px",
+              marginBottom: "10px"
+            }}
+          >
+
+            <p><strong>Service:</strong> {log.service}</p>
+            <p><strong>Level:</strong> {log.level}</p>
+            <p><strong>Message:</strong> {log.message}</p>
+            <p><strong>Response Time:</strong> {log.response_time} ms</p>
+
+          </div>
+
+        ))}
 
       </div>
 
