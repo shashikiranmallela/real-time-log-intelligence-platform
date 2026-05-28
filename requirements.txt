@@ -1,6 +1,6 @@
-kafka-python
 fastapi
 uvicorn
-requests
+kafka-python
 python-dotenv
-numpy
+requests
+elasticsearch
