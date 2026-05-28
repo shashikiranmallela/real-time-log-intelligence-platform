@@ -1,114 +1,66 @@
-import { useEffect, useState } from "react"
+import "./App.css";
 
 function App() {
-
-  const [logs, setLogs] = useState([])
-  const [errorCount, setErrorCount] = useState(0)
-
-  useEffect(() => {
-
-    fetch("http://127.0.0.1:8000/api/logs")
-      .then((response) => response.json())
-      .then((data) => {
-
-        setLogs(data.logs)
-
-        const errors = data.logs.filter(
-          (log) => log.level === "ERROR"
-        )
-
-        setErrorCount(errors.length)
-      })
-
-  }, [])
-
   return (
-    <div style={{
-      backgroundColor: "#0f172a",
-      minHeight: "100vh",
-      color: "white",
-      padding: "20px",
-      fontFamily: "Arial"
-    }}>
-
+    <div className="dashboard">
       <h1>Real-Time Log Intelligence Platform</h1>
 
-      <hr />
-
-      <h2>System Dashboard</h2>
-
-      <div style={{
-        display: "flex",
-        gap: "20px",
-        marginTop: "20px",
-        flexWrap: "wrap"
-      }}>
-
-        <div style={{
-          backgroundColor: "#1e293b",
-          padding: "20px",
-          borderRadius: "10px",
-          width: "250px"
-        }}>
-          <h3>Total Logs</h3>
-          <p>{logs.length}</p>
+      <div className="cards">
+        <div className="card">
+          <h2>Total Logs</h2>
+          <p>1250</p>
         </div>
 
-        <div style={{
-          backgroundColor: "#1e293b",
-          padding: "20px",
-          borderRadius: "10px",
-          width: "250px"
-        }}>
-          <h3>Error Logs</h3>
-          <p>{errorCount}</p>
+        <div className="card">
+          <h2>Error Logs</h2>
+          <p>312</p>
         </div>
 
-        <div style={{
-          backgroundColor: "#1e293b",
-          padding: "20px",
-          borderRadius: "10px",
-          width: "250px"
-        }}>
-          <h3>Anomalies Detected</h3>
-          <p>{errorCount}</p>
+        <div className="card">
+          <h2>Anomalies Detected</h2>
+          <p>48</p>
         </div>
-
       </div>
 
-      <h2 style={{ marginTop: "40px" }}>
-        Recent Logs
-      </h2>
+      <div className="logs-section">
+        <h2>Recent Logs</h2>
 
-      <div style={{
-        marginTop: "20px"
-      }}>
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Level</th>
+              <th>Message</th>
+              <th>Response Time</th>
+            </tr>
+          </thead>
 
-        {logs.map((log, index) => (
+          <tbody>
+            <tr>
+              <td>auth-service</td>
+              <td>ERROR</td>
+              <td>Database connection failed</td>
+              <td>4888 ms</td>
+            </tr>
 
-          <div
-            key={index}
-            style={{
-              backgroundColor: "#1e293b",
-              padding: "15px",
-              borderRadius: "10px",
-              marginBottom: "10px"
-            }}
-          >
+            <tr>
+              <td>payment-service</td>
+              <td>WARN</td>
+              <td>High response time detected</td>
+              <td>3921 ms</td>
+            </tr>
 
-            <p><strong>Service:</strong> {log.service}</p>
-            <p><strong>Level:</strong> {log.level}</p>
-            <p><strong>Message:</strong> {log.message}</p>
-            <p><strong>Response Time:</strong> {log.response_time} ms</p>
-
-          </div>
-
-        ))}
-
+            <tr>
+              <td>order-service</td>
+              <td>INFO</td>
+              <td>Order placed successfully</td>
+              <td>412 ms</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
