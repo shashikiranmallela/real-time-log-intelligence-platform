@@ -2,6 +2,7 @@ from kafka import KafkaConsumer
 import json
 from collections import defaultdict
 import statistics
+from elasticsearch import Elasticsearch
 
 # Kafka Consumer
 consumer = KafkaConsumer(
@@ -14,6 +15,9 @@ consumer = KafkaConsumer(
 )
 
 print("Starting Kafka Consumer with Anomaly Detection...\n")
+
+# Elasticsearch client
+es = Elasticsearch("http://localhost:9200")
 
 # Store response times
 response_times = []
@@ -36,6 +40,11 @@ for message in consumer:
 
     print("Received Log:")
     print(log)
+    # Store log in Elasticsearch
+    es.index(
+        index="application-logs",
+        document=log
+    )
 
     anomalies = []
 
