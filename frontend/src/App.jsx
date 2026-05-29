@@ -13,6 +13,9 @@ function App() {
 
   const [logs, setLogs] = useState([]);
   const [serviceData, setServiceData] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedService, setSelectedService] = useState("ALL");
+  const [selectedLevel, setSelectedLevel] = useState("ALL");
 
   // Fetch stats
   const fetchStats = async () => {
@@ -53,6 +56,26 @@ function App() {
     return () => clearInterval(interval);
 
   }, []);
+  const filteredLogs = logs.filter((log) => {
+
+    const matchesSearch =
+      log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.service.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesService =
+      selectedService === "ALL" ||
+      log.service === selectedService;
+
+    const matchesLevel =
+      selectedLevel === "ALL" ||
+      log.level === selectedLevel;
+
+    return (
+      matchesSearch &&
+      matchesService &&
+      matchesLevel
+    );
+  });
 
   return (
     <div className="dashboard">
@@ -88,8 +111,62 @@ function App() {
       </div>
 
       <div className="logs-section">
+        <div
+          style={{
+            display: "flex",
+            gap: "15px",
+            marginBottom: "20px",
+            justifyContent: "center",
+            flexWrap: "wrap"
+          }}
+        >
 
-        <h2>Recent Logs</h2>
+          <input
+            type="text"
+            placeholder="Search logs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              padding: "10px",
+              width: "250px",
+              borderRadius: "8px",
+              border: "none"
+            }}
+          />
+
+          <select
+            value={selectedService}
+            onChange={(e) => setSelectedService(e.target.value)}
+            style={{
+              padding: "10px",
+              borderRadius: "8px"
+            }}
+          >
+            <option value="ALL">All Services</option>
+            <option value="auth-service">auth-service</option>
+            <option value="order-service">order-service</option>
+            <option value="payment-service">payment-service</option>
+          </select>
+
+          <select
+            value={selectedLevel}
+            onChange={(e) => setSelectedLevel(e.target.value)}
+            style={{
+              padding: "10px",
+              borderRadius: "8px"
+            }}
+          >
+            <option value="ALL">All Levels</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERROR">ERROR</option>
+          </select>
+
+        </div>
+
+        <h2>
+          Recent Logs ({filteredLogs.length})
+        </h2>
 
         <table>
 
@@ -104,21 +181,39 @@ function App() {
 
           <tbody>
 
-            {logs.map((log, index) => (
+            {filteredLogs.length === 0 ? (
 
-              <tr key={index}>
-
-                <td>{log.service}</td>
-
-                <td>{log.level}</td>
-
-                <td>{log.message}</td>
-
-                <td>{log.response_time} ms</td>
-
+              <tr>
+                <td
+                  colSpan="4"
+                  style={{
+                    textAlign: "center",
+                    padding: "20px"
+                  }}
+                >
+                  No logs found
+                </td>
               </tr>
 
-            ))}
+            ) : (
+
+              filteredLogs.map((log, index) => (
+
+                <tr key={index}>
+
+                  <td>{log.service}</td>
+
+                  <td>{log.level}</td>
+
+                  <td>{log.message}</td>
+
+                  <td>{log.response_time} ms</td>
+
+                </tr>
+
+              ))
+
+            )}
 
           </tbody>
 
