@@ -57,3 +57,10 @@ td {
   padding: 12px;
   border-bottom: 1px solid #2d3f63;
 }
+.charts-container {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}

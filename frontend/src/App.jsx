@@ -1,3 +1,4 @@
+import ServiceChart from "./components/ServiceChart";
 import "./App.css";
 import { useEffect, useState } from "react";
 
@@ -10,36 +11,42 @@ function App() {
   });
 
   const [logs, setLogs] = useState([]);
+  const [serviceData, setServiceData] = useState({});
 
   // Fetch stats
   const fetchStats = async () => {
-
     const response = await fetch("http://127.0.0.1:8000/stats");
-
     const data = await response.json();
-
     setStats(data);
   };
 
   // Fetch logs
   const fetchLogs = async () => {
-
     const response = await fetch("http://127.0.0.1:8000/logs");
+    const data = await response.json();
+    setLogs(data);
+  };
+  const fetchServiceDistribution = async () => {
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/service-distribution"
+    );
 
     const data = await response.json();
 
-    setLogs(data);
+    setServiceData(data);
   };
 
   useEffect(() => {
 
     fetchStats();
     fetchLogs();
+    fetchServiceDistribution();
 
-    // Auto refresh every 5 seconds
     const interval = setInterval(() => {
       fetchStats();
       fetchLogs();
+      fetchServiceDistribution();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -49,7 +56,7 @@ function App() {
   return (
     <div className="dashboard">
 
-      <h1>Real-Time Log Intelligence Platform</h1>
+      <h1>🚀 Real-Time Log Intelligence Platform</h1>
 
       <div className="cards">
 
@@ -67,6 +74,13 @@ function App() {
           <h2>Anomalies Detected</h2>
           <p>{stats.anomalies_detected}</p>
         </div>
+
+      </div>
+
+      {/* Service Distribution Pie Chart */}
+      <div className="charts-container">
+
+        <ServiceChart data={serviceData} />
 
       </div>
 
