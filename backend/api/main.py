@@ -83,3 +83,30 @@ def get_logs():
         logs.append(hit["_source"])
 
     return logs
+@app.get("/service-distribution")
+def service_distribution():
+
+    query = {
+        "size": 0,
+        "aggs": {
+            "services": {
+                "terms": {
+                    "field": "service.keyword"
+                }
+            }
+        }
+    }
+
+    result = es.search(
+        index="logs",
+        body=query
+    )
+
+    distribution = {}
+
+    buckets = result["aggregations"]["services"]["buckets"]
+
+    for bucket in buckets:
+        distribution[bucket["key"]] = bucket["doc_count"]
+
+    return distribution

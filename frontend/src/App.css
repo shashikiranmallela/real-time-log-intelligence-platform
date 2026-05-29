@@ -64,3 +64,19 @@ td {
   margin-top: 20px;
   flex-wrap: wrap;
 }
+
+.charts-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px;
+  margin-bottom: 60px;
+  flex-wrap: wrap;
+}
+.chart-card {
+  background: #182544;
+  padding: 20px;
+  border-radius: 10px;
+  width: 500px;
+  height: 340px;
+}

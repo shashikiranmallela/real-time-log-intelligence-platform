@@ -1,4 +1,5 @@
 import ServiceChart from "./components/ServiceChart";
+import ErrorLevelChart from "./components/ErrorLevelChart";
 import "./App.css";
 import { useEffect, useState } from "react";
 
@@ -81,6 +82,8 @@ function App() {
       <div className="charts-container">
 
         <ServiceChart data={serviceData} />
+
+        <ErrorLevelChart logs={logs} />
 
       </div>
 

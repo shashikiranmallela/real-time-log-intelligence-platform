@@ -38,35 +38,44 @@ function ServiceChart({ data }) {
 
   return (
     <div
-      style={{
-        background: "#182544",
-        padding: "20px",
-        borderRadius: "10px",
-        marginTop: "20px",
-        width: "500px",
-        height: "350px",
-        marginLeft: "auto",
-        marginRight: "auto"
-      }}
-    >
-      <h2>Service Distribution</h2>
-
-      <Pie
-        data={chartData}
-        options={{
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              labels: {
-                color: "white",
-                font: {
-                  size: 14
-                }
-              }
-            }
-          }
+        style={{
+            background: "#182544",
+            padding: "20px",
+            borderRadius: "10px",
+            marginTop: "20px",
+            width: "500px",
+            height: "340px",
+            marginLeft: "auto",
+            marginRight: "auto"
         }}
-      />
+        >
+        <h2>Service Distribution</h2>
+
+        <div
+            style={{
+            width: "280px",
+            height: "280px",
+            margin: "0 auto"
+            }}
+        >
+            <Pie
+            data={chartData}
+            options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                legend: {
+                    labels: {
+                    color: "white",
+                    font: {
+                        size: 14
+                    }
+                    }
+                }
+                }
+            }}
+            />
+        </div>
     </div>
   );
 }
