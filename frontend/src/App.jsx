@@ -1,31 +1,81 @@
 import "./App.css";
+import { useEffect, useState } from "react";
 
 function App() {
+
+  const [stats, setStats] = useState({
+    total_logs: 0,
+    error_logs: 0,
+    anomalies_detected: 0
+  });
+
+  const [logs, setLogs] = useState([]);
+
+  // Fetch stats
+  const fetchStats = async () => {
+
+    const response = await fetch("http://127.0.0.1:8000/stats");
+
+    const data = await response.json();
+
+    setStats(data);
+  };
+
+  // Fetch logs
+  const fetchLogs = async () => {
+
+    const response = await fetch("http://127.0.0.1:8000/logs");
+
+    const data = await response.json();
+
+    setLogs(data);
+  };
+
+  useEffect(() => {
+
+    fetchStats();
+    fetchLogs();
+
+    // Auto refresh every 5 seconds
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchLogs();
+    }, 5000);
+
+    return () => clearInterval(interval);
+
+  }, []);
+
   return (
     <div className="dashboard">
+
       <h1>Real-Time Log Intelligence Platform</h1>
 
       <div className="cards">
+
         <div className="card">
           <h2>Total Logs</h2>
-          <p>1250</p>
+          <p>{stats.total_logs}</p>
         </div>
 
         <div className="card">
           <h2>Error Logs</h2>
-          <p>312</p>
+          <p>{stats.error_logs}</p>
         </div>
 
         <div className="card">
           <h2>Anomalies Detected</h2>
-          <p>48</p>
+          <p>{stats.anomalies_detected}</p>
         </div>
+
       </div>
 
       <div className="logs-section">
+
         <h2>Recent Logs</h2>
 
         <table>
+
           <thead>
             <tr>
               <th>Service</th>
@@ -36,29 +86,29 @@ function App() {
           </thead>
 
           <tbody>
-            <tr>
-              <td>auth-service</td>
-              <td>ERROR</td>
-              <td>Database connection failed</td>
-              <td>4888 ms</td>
-            </tr>
 
-            <tr>
-              <td>payment-service</td>
-              <td>WARN</td>
-              <td>High response time detected</td>
-              <td>3921 ms</td>
-            </tr>
+            {logs.map((log, index) => (
 
-            <tr>
-              <td>order-service</td>
-              <td>INFO</td>
-              <td>Order placed successfully</td>
-              <td>412 ms</td>
-            </tr>
+              <tr key={index}>
+
+                <td>{log.service}</td>
+
+                <td>{log.level}</td>
+
+                <td>{log.message}</td>
+
+                <td>{log.response_time} ms</td>
+
+              </tr>
+
+            ))}
+
           </tbody>
+
         </table>
+
       </div>
+
     </div>
   );
 }

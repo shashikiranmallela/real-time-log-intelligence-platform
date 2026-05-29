@@ -1,103 +1,116 @@
 from kafka import KafkaConsumer
-import json
-from collections import defaultdict
-import statistics
 from elasticsearch import Elasticsearch
+import json
+import statistics
+
+# Connect to Elasticsearch
+es = Elasticsearch("http://localhost:9200")
 
 # Kafka Consumer
 consumer = KafkaConsumer(
     "application-logs",
     bootstrap_servers="localhost:9092",
     auto_offset_reset="earliest",
-    enable_auto_commit=True,
-    group_id="log-consumer-group",
+    group_id="log-intelligence-group",
     value_deserializer=lambda x: json.loads(x.decode("utf-8"))
 )
 
-print("Starting Kafka Consumer with Anomaly Detection...\n")
-
-# Elasticsearch client
-es = Elasticsearch("http://localhost:9200")
+print("Starting Kafka Consumer with Anomaly Detection...")
 
 # Store response times
 response_times = []
 
-# Error counter per service
-error_count = defaultdict(int)
-
-# Thresholds
-HIGH_RESPONSE_THRESHOLD = 4000
-ERROR_SPIKE_THRESHOLD = 5
+# Track error counts
+error_counts = {
+    "payment-service": 0,
+    "auth-service": 0,
+    "order-service": 0
+}
 
 # Process logs continuously
 for message in consumer:
 
     log = message.value
 
-    service = log["service"]
-    level = log["level"]
+    print("\nReceived Log:")
+    print(log)
+
+    # -----------------------------
+    # STORE IN ELASTICSEARCH
+    # -----------------------------
+    try:
+
+        es.index(
+            index="logs",
+            document=log
+        )
+
+        print("Stored in Elasticsearch")
+
+    except Exception as e:
+
+        print("Elasticsearch Error:")
+        print(e)
+
+    # -----------------------------
+    # ANOMALY DETECTION
+    # -----------------------------
+
     response_time = log["response_time"]
 
-    print("Received Log:")
-    print(log)
-    # Store log in Elasticsearch
-    es.index(
-        index="application-logs",
-        document=log
-    )
-
-    anomalies = []
-
-    # -------------------------------
-    # Threshold Detection
-    # -------------------------------
-    if response_time > HIGH_RESPONSE_THRESHOLD:
-        anomalies.append("High Response Time")
-
-    # -------------------------------
-    # Error Spike Detection
-    # -------------------------------
-    if level == "ERROR":
-        error_count[service] += 1
-
-    if error_count[service] >= ERROR_SPIKE_THRESHOLD:
-        anomalies.append(f"Error Spike in {service}")
-
-    # -------------------------------
-    # Z-Score Detection
-    # -------------------------------
     response_times.append(response_time)
 
-    if len(response_times) > 10:
+    # Keep only latest 20 values
+    if len(response_times) > 20:
+        response_times.pop(0)
+
+    # Calculate z-score
+    if len(response_times) >= 5:
 
         mean = statistics.mean(response_times)
-        std_dev = statistics.stdev(response_times)
+        stdev = statistics.stdev(response_times)
 
-        if std_dev > 0:
-            z_score = (response_time - mean) / std_dev
+        if stdev > 0:
+
+            z_score = (response_time - mean) / stdev
 
             print(f"Z-Score: {z_score:.2f}")
 
-            if z_score > 2:
-                anomalies.append("Statistical Anomaly Detected")
+            if z_score > 1.3:
 
-    # -------------------------------
-    # Print Anomalies
-    # -------------------------------
-    if anomalies:
+                print("\nANOMALY DETECTED")
+                print("-> High Response Time")
 
-        print("\nANOMALY DETECTED")
+    # -----------------------------
+    # ERROR TRACKING
+    # -----------------------------
 
-        for anomaly in anomalies:
-            print(f"-> {anomaly}")
+    if log["level"] == "ERROR":
 
-        print(f"Service: {service}")
+        service = log["service"]
+
+        error_counts[service] += 1
+
+        if error_counts[service] >= 3:
+
+            print("-> Error Spike in", service)
+
+    # -----------------------------
+    # SHOW DETAILS
+    # -----------------------------
+
+    if (
+        response_time > 4000
+        or log["level"] == "ERROR"
+    ):
+
+        print(f"Service: {log['service']}")
         print(f"Message: {log['message']}")
         print(f"Response Time: {response_time} ms")
 
         print("\nCurrent Error Counts:")
 
-        for svc, count in error_count.items():
-            print(f"{svc}: {count}")
+        for service, count in error_counts.items():
+            print(f"{service}: {count}")
 
     print("-" * 60)
