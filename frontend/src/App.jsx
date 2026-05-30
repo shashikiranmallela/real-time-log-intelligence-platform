@@ -1,5 +1,6 @@
-import ServiceChart from "./components/ServiceChart";
+import AlertPanel from "./components/AlertPanel";
 import ErrorLevelChart from "./components/ErrorLevelChart";
+import ServiceChart from "./components/ServiceChart";
 import "./App.css";
 import { useEffect, useState } from "react";
 
@@ -16,6 +17,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedService, setSelectedService] = useState("ALL");
   const [selectedLevel, setSelectedLevel] = useState("ALL");
+  const [alerts, setAlerts] = useState([]);
 
   // Fetch stats
   const fetchStats = async () => {
@@ -41,16 +43,29 @@ function App() {
     setServiceData(data);
   };
 
+  const fetchAlerts = async () => {
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/alerts"
+    );
+
+    const data = await response.json();
+
+    setAlerts(data);
+  };
+
   useEffect(() => {
 
     fetchStats();
     fetchLogs();
     fetchServiceDistribution();
+    fetchAlerts();
 
     const interval = setInterval(() => {
       fetchStats();
       fetchLogs();
       fetchServiceDistribution();
+      fetchAlerts();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -102,6 +117,7 @@ function App() {
       </div>
 
       {/* Service Distribution Pie Chart */}
+      <AlertPanel alerts={alerts} />
       <div className="charts-container">
 
         <ServiceChart data={serviceData} />

@@ -81,6 +81,21 @@ for message in consumer:
                 print("\nANOMALY DETECTED")
                 print("-> High Response Time")
 
+                alert = {
+                    "timestamp": log["timestamp"],
+                    "severity": "HIGH",
+                    "service": log["service"],
+                    "message": "High Response Time Detected",
+                    "response_time": response_time
+                }
+
+                es.index(
+                    index="alerts",
+                    document=alert
+                )
+
+                
+
     # -----------------------------
     # ERROR TRACKING
     # -----------------------------
@@ -94,6 +109,18 @@ for message in consumer:
         if error_counts[service] >= 3:
 
             print("-> Error Spike in", service)
+
+            alert = {
+                "timestamp": log["timestamp"],
+                "severity": "MEDIUM",
+                "service": service,
+                "message": f"Error Spike Detected in {service}"
+            }
+
+            es.index(
+                index="alerts",
+                document=alert
+            )
 
     # -----------------------------
     # SHOW DETAILS

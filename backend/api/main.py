@@ -110,3 +110,24 @@ def service_distribution():
         distribution[bucket["key"]] = bucket["doc_count"]
 
     return distribution
+@app.get("/alerts")
+def get_alerts():
+
+    response = es.search(
+        index="alerts",
+        size=10,
+        sort=[
+            {
+                "timestamp": {
+                    "order": "desc"
+                }
+            }
+        ]
+    )
+
+    alerts = []
+
+    for hit in response["hits"]["hits"]:
+        alerts.append(hit["_source"])
+
+    return alerts
