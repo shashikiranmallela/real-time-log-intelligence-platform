@@ -1,6 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from elasticsearch import Elasticsearch
+from groq import Groq
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+print("KEY =", os.getenv("GROQ_API_KEY"))
+client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
+)
 
 app = FastAPI()
 
@@ -191,4 +200,70 @@ def analytics():
         "top_service": top_service,
         "common_error": common_error,
         "avg_response_time": avg_response_time
+    }
+@app.get("/explain-anomaly")
+def explain_anomaly():
+
+    query = {
+        "query": {
+            "range": {
+                "response_time": {
+                    "gte": 3000
+                }
+            }
+        },
+        "size": 1,
+        "sort": [
+            {
+                "timestamp": {
+                    "order": "desc"
+                }
+            }
+        ]
+    }
+
+    result = es.search(
+        index="logs",
+        body=query
+    )
+
+    hits = result["hits"]["hits"]
+
+    if len(hits) == 0:
+        return {
+            "explanation": "No anomalies detected."
+        }
+
+    anomaly = hits[0]["_source"]
+
+    prompt = f"""
+    Analyze this log anomaly.
+
+    Service: {anomaly['service']}
+    Level: {anomaly['level']}
+    Message: {anomaly['message']}
+    Response Time: {anomaly['response_time']} ms
+
+    Explain:
+    1. Possible cause
+    2. Business impact
+    3. Recommended action
+
+    Keep response under 100 words.
+    """
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    )
+
+    explanation = response.choices[0].message.content
+
+    return {
+        "explanation": explanation
     }
