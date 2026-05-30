@@ -1,4 +1,5 @@
 import AlertPanel from "./components/AlertPanel";
+import AIExplanationPanel from "./components/AIExplanationPanel";
 import ErrorLevelChart from "./components/ErrorLevelChart";
 import ServiceChart from "./components/ServiceChart";
 import "./App.css";
@@ -24,6 +25,7 @@ function App() {
   const [selectedService, setSelectedService] = useState("ALL");
   const [selectedLevel, setSelectedLevel] = useState("ALL");
   const [alerts, setAlerts] = useState([]);
+  const [explanation, setExplanation] = useState("");
 
   // Fetch stats
   const fetchStats = async () => {
@@ -71,6 +73,16 @@ function App() {
 
     setAlerts(data);
   };
+  const fetchExplanation = async () => {
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/explain-anomaly"
+    );
+
+    const data = await response.json();
+
+    setExplanation(data.explanation);
+  };
 
   useEffect(() => {
 
@@ -79,6 +91,7 @@ function App() {
     fetchLogs();
     fetchServiceDistribution();
     fetchAlerts();
+    fetchExplanation();
 
     const interval = setInterval(() => {
       fetchStats();
@@ -86,6 +99,7 @@ function App() {
       fetchLogs();
       fetchServiceDistribution();
       fetchAlerts();
+      fetchExplanation();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -158,6 +172,9 @@ function App() {
       </div>
 
       <AlertPanel alerts={alerts} />
+      <AIExplanationPanel
+        explanation={explanation}
+      />
 
       <div className="charts-container">
 
