@@ -131,3 +131,64 @@ def get_alerts():
         alerts.append(hit["_source"])
 
     return alerts
+@app.get("/analytics")
+def analytics():
+
+    response = es.search(
+        index="logs",
+        size=1000
+    )
+
+    logs = [
+        hit["_source"]
+        for hit in response["hits"]["hits"]
+    ]
+
+    if not logs:
+        return {
+            "top_service": "N/A",
+            "avg_response_time": 0,
+            "common_error": "N/A"
+        }
+
+    service_count = {}
+    error_count = {}
+    response_times = []
+
+    for log in logs:
+
+        service = log.get("service", "unknown")
+        message = log.get("message", "")
+
+        service_count[service] = (
+            service_count.get(service, 0) + 1
+        )
+
+        error_count[message] = (
+            error_count.get(message, 0) + 1
+        )
+
+        response_times.append(
+            log.get("response_time", 0)
+        )
+
+    top_service = max(
+        service_count,
+        key=service_count.get
+    )
+
+    common_error = max(
+        error_count,
+        key=error_count.get
+    )
+
+    avg_response_time = int(
+        sum(response_times)
+        / len(response_times)
+    )
+
+    return {
+        "top_service": top_service,
+        "common_error": common_error,
+        "avg_response_time": avg_response_time
+    }

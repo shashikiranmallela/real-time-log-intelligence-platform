@@ -34,6 +34,10 @@ h1 {
   font-size: 32px;
   font-weight: bold;
 }
+.card p {
+  font-size: 20px;
+  word-break: break-word;
+}
 
 .logs-section {
   background-color: #16213e;

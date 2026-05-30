@@ -12,6 +12,12 @@ function App() {
     anomalies_detected: 0
   });
 
+  const [analytics, setAnalytics] = useState({
+    top_service: "",
+    common_error: "",
+    avg_response_time: 0
+  });
+
   const [logs, setLogs] = useState([]);
   const [serviceData, setServiceData] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,12 +32,24 @@ function App() {
     setStats(data);
   };
 
+  // Fetch analytics
+  const fetchAnalytics = async () => {
+    const response = await fetch(
+      "http://127.0.0.1:8000/analytics"
+    );
+
+    const data = await response.json();
+
+    setAnalytics(data);
+  };
+
   // Fetch logs
   const fetchLogs = async () => {
     const response = await fetch("http://127.0.0.1:8000/logs");
     const data = await response.json();
     setLogs(data);
   };
+
   const fetchServiceDistribution = async () => {
 
     const response = await fetch(
@@ -57,12 +75,14 @@ function App() {
   useEffect(() => {
 
     fetchStats();
+    fetchAnalytics();
     fetchLogs();
     fetchServiceDistribution();
     fetchAlerts();
 
     const interval = setInterval(() => {
       fetchStats();
+      fetchAnalytics();
       fetchLogs();
       fetchServiceDistribution();
       fetchAlerts();
@@ -71,6 +91,7 @@ function App() {
     return () => clearInterval(interval);
 
   }, []);
+
   const filteredLogs = logs.filter((log) => {
 
     const matchesSearch =
@@ -116,8 +137,28 @@ function App() {
 
       </div>
 
-      {/* Service Distribution Pie Chart */}
+      {/* Analytics Cards */}
+      <div className="cards">
+
+        <div className="card">
+          <h2>Top Service</h2>
+          <p>{analytics.top_service}</p>
+        </div>
+
+        <div className="card">
+          <h2>Most Common Error</h2>
+          <p>{analytics.common_error}</p>
+        </div>
+
+        <div className="card">
+          <h2>Avg Response Time</h2>
+          <p>{analytics.avg_response_time} ms</p>
+        </div>
+
+      </div>
+
       <AlertPanel alerts={alerts} />
+
       <div className="charts-container">
 
         <ServiceChart data={serviceData} />
@@ -127,6 +168,7 @@ function App() {
       </div>
 
       <div className="logs-section">
+
         <div
           style={{
             display: "flex",
