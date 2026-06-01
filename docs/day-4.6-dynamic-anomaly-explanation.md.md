@@ -16,8 +16,17 @@ Flow:
 
 Alert -> Groq -> Explanation -> Dashboard
 
+## Cache Optimization
+
+Before calling Groq:
+
+1. Search Elasticsearch cache
+2. Return cached explanation if available
+3. Otherwise call Groq and store result
+
 ## Benefits
 
-- Real-time explanations
-- More realistic incident analysis
-- Better production architecture
+- Real-time anomaly explanations
+- Reduced token usage
+- Faster response times
+- Production-ready architecture
