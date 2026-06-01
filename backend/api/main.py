@@ -204,7 +204,21 @@ def analytics():
 @app.get("/explain-anomaly")
 def explain_anomaly():
 
-    error_message = "Database connection failed"
+    response = es.search(
+        index="alerts",
+        size=1,
+        sort=[
+            {
+                "timestamp": {
+                    "order": "desc"
+                }
+            }
+        ]
+    )
+
+    alert = response["hits"]["hits"][0]["_source"]
+
+    error_message = alert["message"]
 
     # -------------------------------------------------
     # STEP 1 : CHECK CACHE
