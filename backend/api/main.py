@@ -204,28 +204,86 @@ def analytics():
 @app.get("/explain-anomaly")
 def explain_anomaly():
 
-    query = {
+    error_message = "Database connection failed"
+
+    # -------------------------------------------------
+    # STEP 1 : CHECK CACHE
+    # -------------------------------------------------
+
+    cache_query = {
         "query": {
-            "range": {
-                "response_time": {
-                    "gte": 3000
-                }
+            "match": {
+                "error_message": error_message
             }
-        },
-        "size": 1,
-        "sort": [
-            {
-                "timestamp": {
-                    "order": "desc"
-                }
-            }
-        ]
+        }
     }
 
-    result = es.search(
-        index="logs",
-        body=query
+    cache_result = es.search(
+        index="anomaly_explanations",
+        body=cache_query
     )
+
+    if cache_result["hits"]["total"]["value"] > 0:
+
+        cached_explanation = (
+            cache_result["hits"]["hits"][0]["_source"]["explanation"]
+        )
+
+        return {
+            "explanation": cached_explanation,
+            "source": "cache"
+        }
+
+    # -------------------------------------------------
+    # STEP 2 : CALL GROQ
+    # -------------------------------------------------
+
+    completion = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {
+                "role": "user",
+                "content":
+                f"""
+                Explain this anomaly:
+
+                {error_message}
+
+                Give ONLY:
+
+                1. Possible cause (1 sentence)
+                2. Business impact (1 sentence)
+                3. Recommended action (1 sentence)
+
+                Maximum 40 words total.
+                """
+            }
+        ]
+    )
+
+    explanation = (
+        completion
+        .choices[0]
+        .message
+        .content
+    )
+
+    # -------------------------------------------------
+    # STEP 3 : SAVE TO ELASTICSEARCH
+    # -------------------------------------------------
+
+    es.index(
+        index="anomaly_explanations",
+        document={
+            "error_message": error_message,
+            "explanation": explanation
+        }
+    )
+
+    return {
+        "explanation": explanation,
+        "source": "groq"
+    }
 
     hits = result["hits"]["hits"]
 
