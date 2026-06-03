@@ -1,3 +1,4 @@
+from .routes_extra import router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from elasticsearch import Elasticsearch
@@ -216,13 +217,20 @@ def explain_anomaly():
         ]
     )
 
-    alert = response["hits"]["hits"][0]["_source"]
+    hits = response["hits"]["hits"]
+
+    if len(hits) == 0:
+        return {
+            "explanation": "No anomalies found."
+        }
+
+    alert = hits[0]["_source"]
 
     error_message = alert["message"]
 
-    # -------------------------------------------------
-    # STEP 1 : CHECK CACHE
-    # -------------------------------------------------
+    # ----------------------------------
+    # CHECK CACHE
+    # ----------------------------------
 
     cache_query = {
         "query": {
@@ -248,9 +256,9 @@ def explain_anomaly():
             "source": "cache"
         }
 
-    # -------------------------------------------------
-    # STEP 2 : CALL GROQ
-    # -------------------------------------------------
+    # ----------------------------------
+    # CALL GROQ
+    # ----------------------------------
 
     completion = client.chat.completions.create(
         model="llama-3.1-8b-instant",
@@ -265,11 +273,11 @@ def explain_anomaly():
 
                 Give ONLY:
 
-                1. Possible cause (1 sentence)
-                2. Business impact (1 sentence)
-                3. Recommended action (1 sentence)
+                1. Possible cause
+                2. Business impact
+                3. Recommended action
 
-                Maximum 40 words total.
+                Maximum 40 words.
                 """
             }
         ]
@@ -282,9 +290,9 @@ def explain_anomaly():
         .content
     )
 
-    # -------------------------------------------------
-    # STEP 3 : SAVE TO ELASTICSEARCH
-    # -------------------------------------------------
+    # ----------------------------------
+    # SAVE CACHE
+    # ----------------------------------
 
     es.index(
         index="anomaly_explanations",
@@ -299,43 +307,130 @@ def explain_anomaly():
         "source": "groq"
     }
 
-    hits = result["hits"]["hits"]
 
-    if len(hits) == 0:
-        return {
-            "explanation": "No anomalies detected."
-        }
+# ==================================================
+# INCIDENT MANAGEMENT APIs
+# ==================================================
 
-    anomaly = hits[0]["_source"]
+@app.get("/incidents")
+def get_incidents():
 
-    prompt = f"""
-    Analyze this log anomaly.
-
-    Service: {anomaly['service']}
-    Level: {anomaly['level']}
-    Message: {anomaly['message']}
-    Response Time: {anomaly['response_time']} ms
-
-    Explain:
-    1. Possible cause
-    2. Business impact
-    3. Recommended action
-
-    Keep response under 100 words.
-    """
-
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
+    response = es.search(
+        index="alerts",
+        size=100,
+        sort=[
             {
-                "role": "user",
-                "content": prompt
+                "timestamp": {
+                    "order": "desc"
+                }
             }
         ]
     )
 
-    explanation = response.choices[0].message.content
+    incidents = []
+
+    for hit in response["hits"]["hits"]:
+
+        incident = hit["_source"]
+
+        incidents.append(
+            {
+                "incident_id": incident.get("incident_id"),
+                "timestamp": incident.get("timestamp"),
+                "severity": incident.get("severity"),
+                "status": incident.get("status"),
+                "service": incident.get("service"),
+                "team": incident.get("team"),
+                "owner": incident.get("owner"),
+                "message": incident.get("message")
+            }
+        )
+
+    return incidents
+
+
+@app.post("/assign-incident")
+def assign_incident(data: dict):
+
+    incident_id = data["incident_id"]
+    owner = data["owner"]
+
+    query = {
+        "query": {
+            "term": {
+                "incident_id.keyword": incident_id
+            }
+        }
+    }
+
+    result = es.search(
+        index="alerts",
+        body=query
+    )
+
+    hits = result["hits"]["hits"]
+
+    if len(hits) == 0:
+        return {
+            "error": "Incident not found"
+        }
+
+    doc_id = hits[0]["_id"]
+
+    es.update(
+        index="alerts",
+        id=doc_id,
+        body={
+            "doc": {
+                "owner": owner,
+                "status": "ACKNOWLEDGED"
+            }
+        }
+    )
 
     return {
-        "explanation": explanation
+        "message": "Incident assigned successfully"
     }
+
+
+@app.post("/resolve-incident")
+def resolve_incident(data: dict):
+
+    incident_id = data["incident_id"]
+
+    query = {
+        "query": {
+            "term": {
+                "incident_id.keyword": incident_id
+            }
+        }
+    }
+
+    result = es.search(
+        index="alerts",
+        body=query
+    )
+
+    hits = result["hits"]["hits"]
+
+    if len(hits) == 0:
+        return {
+            "error": "Incident not found"
+        }
+
+    doc_id = hits[0]["_id"]
+
+    es.update(
+        index="alerts",
+        id=doc_id,
+        body={
+            "doc": {
+                "status": "RESOLVED"
+            }
+        }
+    )
+
+    return {
+        "message": "Incident resolved successfully"
+    }
+app.include_router(router)

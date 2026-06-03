@@ -2,9 +2,21 @@ from kafka import KafkaConsumer
 from elasticsearch import Elasticsearch
 import json
 import statistics
+import uuid
+from datetime import datetime
 
 # Connect to Elasticsearch
 es = Elasticsearch("http://localhost:9200")
+
+# Team Routing Mapping
+TEAM_MAPPING = {
+    "auth-service": "Authentication Team",
+    "payment-service": "Payments Team",
+    "order-service": "Orders Team"
+}
+
+# Prevent duplicate alerts
+last_alert_time = {}
 
 # Kafka Consumer
 consumer = KafkaConsumer(
@@ -27,7 +39,32 @@ error_counts = {
     "order-service": 0
 }
 
-# Process logs continuously
+
+# -----------------------------------
+# DUPLICATE ALERT PREVENTION
+# -----------------------------------
+
+def should_create_alert(service, alert_type):
+
+    key = f"{service}_{alert_type}"
+
+    current_time = datetime.now().timestamp()
+
+    if key not in last_alert_time:
+        last_alert_time[key] = current_time
+        return True
+
+    if current_time - last_alert_time[key] > 60:
+        last_alert_time[key] = current_time
+        return True
+
+    return False
+
+
+# -----------------------------------
+# PROCESS LOGS
+# -----------------------------------
+
 for message in consumer:
 
     log = message.value
@@ -36,8 +73,9 @@ for message in consumer:
     print(log)
 
     # -----------------------------
-    # STORE IN ELASTICSEARCH
+    # STORE LOG
     # -----------------------------
+
     try:
 
         es.index(
@@ -53,18 +91,16 @@ for message in consumer:
         print(e)
 
     # -----------------------------
-    # ANOMALY DETECTION
+    # RESPONSE TIME ANOMALY
     # -----------------------------
 
     response_time = log["response_time"]
 
     response_times.append(response_time)
 
-    # Keep only latest 20 values
     if len(response_times) > 20:
         response_times.pop(0)
 
-    # Calculate z-score
     if len(response_times) >= 5:
 
         mean = statistics.mean(response_times)
@@ -78,26 +114,39 @@ for message in consumer:
 
             if z_score > 1.3:
 
-                print("\nANOMALY DETECTED")
-                print("-> High Response Time")
+                if should_create_alert(
+                    log["service"],
+                    "high_response_time"
+                ):
 
-                alert = {
-                    "timestamp": log["timestamp"],
-                    "severity": "HIGH",
-                    "service": log["service"],
-                    "message": "High Response Time Detected",
-                    "response_time": response_time
-                }
+                    print("HIGH RESPONSE TIME ALERT")
 
-                es.index(
-                    index="alerts",
-                    document=alert
-                )
+                    alert = {
+                        "incident_id": str(uuid.uuid4()),
+                        "timestamp": log["timestamp"],
+                        "severity": "HIGH",
+                        "status": "OPEN",
+                        "service": log["service"],
+                        "team": TEAM_MAPPING.get(
+                            log["service"],
+                            "Unknown Team"
+                        ),
+                        "owner": None,
+                        "message": "High Response Time Detected",
+                        "response_time": response_time
+                    }
 
-                
+                    es.index(
+                        index="alerts",
+                        document=alert
+                    )
+
+                    print(
+                        f"Alert Routed To: {alert['team']}"
+                    )
 
     # -----------------------------
-    # ERROR TRACKING
+    # ERROR SPIKE DETECTION
     # -----------------------------
 
     if log["level"] == "ERROR":
@@ -108,22 +157,38 @@ for message in consumer:
 
         if error_counts[service] >= 3:
 
-            print("-> Error Spike in", service)
+            if should_create_alert(
+                service,
+                "error_spike"
+            ):
 
-            alert = {
-                "timestamp": log["timestamp"],
-                "severity": "MEDIUM",
-                "service": service,
-                "message": f"Error Spike Detected in {service}"
-            }
+                print(f"Error Spike in {service}")
 
-            es.index(
-                index="alerts",
-                document=alert
-            )
+                alert = {
+                    "incident_id": str(uuid.uuid4()),
+                    "timestamp": log["timestamp"],
+                    "severity": "MEDIUM",
+                    "status": "OPEN",
+                    "service": service,
+                    "team": TEAM_MAPPING.get(
+                        service,
+                        "Unknown Team"
+                    ),
+                    "owner": None,
+                    "message": f"Error Spike Detected in {service}"
+                }
+
+                es.index(
+                    index="alerts",
+                    document=alert
+                )
+
+                print(
+                    f"Alert Routed To: {alert['team']}"
+                )
 
     # -----------------------------
-    # SHOW DETAILS
+    # DEBUG OUTPUT
     # -----------------------------
 
     if (
