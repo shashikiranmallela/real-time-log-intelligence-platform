@@ -1,303 +1,34 @@
-import AlertPanel from "./components/AlertPanel";
-import AIExplanationPanel from "./components/AIExplanationPanel";
-import ErrorLevelChart from "./components/ErrorLevelChart";
-import ServiceChart from "./components/ServiceChart";
-import "./App.css";
-import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import OverviewPage    from "./pages/observability/OverviewPage.jsx";
+import StreamPage      from "./pages/observability/StreamPage.jsx";
+import AnomaliesPage   from "./pages/observability/AnomaliesPage.jsx";
+import IncidentsPage   from "./pages/observability/IncidentsPage.jsx";
+import AIOpsPage       from "./pages/observability/AIOpsPage.jsx";
+import SearchPage      from "./pages/observability/SearchPage.jsx";
+import AlertsPage      from "./pages/observability/AlertsPage.jsx";
 
-function App() {
-
-  const [stats, setStats] = useState({
-    total_logs: 0,
-    error_logs: 0,
-    anomalies_detected: 0
-  });
-
-  const [analytics, setAnalytics] = useState({
-    top_service: "",
-    common_error: "",
-    avg_response_time: 0
-  });
-
-  const [logs, setLogs] = useState([]);
-  const [serviceData, setServiceData] = useState({});
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedService, setSelectedService] = useState("ALL");
-  const [selectedLevel, setSelectedLevel] = useState("ALL");
-  const [alerts, setAlerts] = useState([]);
-  const [explanation, setExplanation] = useState("");
-
-  // Fetch stats
-  const fetchStats = async () => {
-    const response = await fetch("http://127.0.0.1:8000/stats");
-    const data = await response.json();
-    setStats(data);
-  };
-
-  // Fetch analytics
-  const fetchAnalytics = async () => {
-    const response = await fetch(
-      "http://127.0.0.1:8000/analytics"
-    );
-
-    const data = await response.json();
-
-    setAnalytics(data);
-  };
-
-  // Fetch logs
-  const fetchLogs = async () => {
-    const response = await fetch("http://127.0.0.1:8000/logs");
-    const data = await response.json();
-    setLogs(data);
-  };
-
-  const fetchServiceDistribution = async () => {
-
-    const response = await fetch(
-      "http://127.0.0.1:8000/service-distribution"
-    );
-
-    const data = await response.json();
-
-    setServiceData(data);
-  };
-
-  const fetchAlerts = async () => {
-
-    const response = await fetch(
-      "http://127.0.0.1:8000/alerts"
-    );
-
-    const data = await response.json();
-
-    setAlerts(data);
-  };
-  const fetchExplanation = async () => {
-
-    const response = await fetch(
-      "http://127.0.0.1:8000/explain-anomaly"
-    );
-
-    const data = await response.json();
-
-    setExplanation(data.explanation);
-  };
-
-  useEffect(() => {
-
-    fetchStats();
-    fetchAnalytics();
-    fetchLogs();
-    fetchServiceDistribution();
-    fetchAlerts();
-    fetchExplanation();
-
-    const interval = setInterval(() => {
-      fetchStats();
-      fetchAnalytics();
-      fetchLogs();
-      fetchServiceDistribution();
-      fetchAlerts();
-      fetchExplanation();
-    }, 5000);
-
-    return () => clearInterval(interval);
-
-  }, []);
-
-  const filteredLogs = logs.filter((log) => {
-
-    const matchesSearch =
-      log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.service.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesService =
-      selectedService === "ALL" ||
-      log.service === selectedService;
-
-    const matchesLevel =
-      selectedLevel === "ALL" ||
-      log.level === selectedLevel;
-
-    return (
-      matchesSearch &&
-      matchesService &&
-      matchesLevel
-    );
-  });
-
+export default function App() {
   return (
-    <div className="dashboard">
+    <Routes>
+      <Route path="/"               element={<OverviewPage />} />
+      <Route path="/obs"            element={<OverviewPage />} />
+      <Route path="/obs/stream"     element={<StreamPage />} />
+      <Route path="/obs/anomalies"  element={<AnomaliesPage />} />
+      <Route path="/obs/incidents"  element={<IncidentsPage />} />
+      <Route path="/obs/ai-ops"     element={<AIOpsPage />} />
+      <Route path="/obs/search"     element={<SearchPage />} />
+      <Route path="/obs/alerts"     element={<AlertsPage />} />
 
-      <h1>🚀 Real-Time Log Intelligence Platform</h1>
+      {/* Safety redirects — in case any link navigates to bare paths */}
+      <Route path="/stream"    element={<Navigate to="/obs/stream"    replace />} />
+      <Route path="/anomalies" element={<Navigate to="/obs/anomalies" replace />} />
+      <Route path="/incidents" element={<Navigate to="/obs/incidents" replace />} />
+      <Route path="/ai-ops"    element={<Navigate to="/obs/ai-ops"    replace />} />
+      <Route path="/search"    element={<Navigate to="/obs/search"    replace />} />
+      <Route path="/alerts"    element={<Navigate to="/obs/alerts"    replace />} />
 
-      <div className="cards">
-
-        <div className="card">
-          <h2>Total Logs</h2>
-          <p>{stats.total_logs}</p>
-        </div>
-
-        <div className="card">
-          <h2>Error Logs</h2>
-          <p>{stats.error_logs}</p>
-        </div>
-
-        <div className="card">
-          <h2>Anomalies Detected</h2>
-          <p>{stats.anomalies_detected}</p>
-        </div>
-
-      </div>
-
-      {/* Analytics Cards */}
-      <div className="cards">
-
-        <div className="card">
-          <h2>Top Service</h2>
-          <p>{analytics.top_service}</p>
-        </div>
-
-        <div className="card">
-          <h2>Most Common Error</h2>
-          <p>{analytics.common_error}</p>
-        </div>
-
-        <div className="card">
-          <h2>Avg Response Time</h2>
-          <p>{analytics.avg_response_time} ms</p>
-        </div>
-
-      </div>
-
-      <AlertPanel alerts={alerts} />
-      <AIExplanationPanel
-        explanation={explanation}
-      />
-
-      <div className="charts-container">
-
-        <ServiceChart data={serviceData} />
-
-        <ErrorLevelChart logs={logs} />
-
-      </div>
-
-      <div className="logs-section">
-
-        <div
-          style={{
-            display: "flex",
-            gap: "15px",
-            marginBottom: "20px",
-            justifyContent: "center",
-            flexWrap: "wrap"
-          }}
-        >
-
-          <input
-            type="text"
-            placeholder="Search logs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: "10px",
-              width: "250px",
-              borderRadius: "8px",
-              border: "none"
-            }}
-          />
-
-          <select
-            value={selectedService}
-            onChange={(e) => setSelectedService(e.target.value)}
-            style={{
-              padding: "10px",
-              borderRadius: "8px"
-            }}
-          >
-            <option value="ALL">All Services</option>
-            <option value="auth-service">auth-service</option>
-            <option value="order-service">order-service</option>
-            <option value="payment-service">payment-service</option>
-          </select>
-
-          <select
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value)}
-            style={{
-              padding: "10px",
-              borderRadius: "8px"
-            }}
-          >
-            <option value="ALL">All Levels</option>
-            <option value="INFO">INFO</option>
-            <option value="WARN">WARN</option>
-            <option value="ERROR">ERROR</option>
-          </select>
-
-        </div>
-
-        <h2>
-          Recent Logs ({filteredLogs.length})
-        </h2>
-
-        <table>
-
-          <thead>
-            <tr>
-              <th>Service</th>
-              <th>Level</th>
-              <th>Message</th>
-              <th>Response Time</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {filteredLogs.length === 0 ? (
-
-              <tr>
-                <td
-                  colSpan="4"
-                  style={{
-                    textAlign: "center",
-                    padding: "20px"
-                  }}
-                >
-                  No logs found
-                </td>
-              </tr>
-
-            ) : (
-
-              filteredLogs.map((log, index) => (
-
-                <tr key={index}>
-
-                  <td>{log.service}</td>
-
-                  <td>{log.level}</td>
-
-                  <td>{log.message}</td>
-
-                  <td>{log.response_time} ms</td>
-
-                </tr>
-
-              ))
-
-            )}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </div>
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
-
-export default App;
