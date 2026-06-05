@@ -10,26 +10,20 @@ const statusStyle = {
 
 const sevDot = {
   critical: "bg-sev-critical",
+  high:     "bg-sev-critical",
   error:    "bg-sev-error",
+  medium:   "bg-sev-warn",
   warn:     "bg-sev-warn",
   info:     "bg-sev-info",
   debug:    "bg-muted-foreground",
 };
 
-/**
- * IncidentCenter
- * Props:
- *  - incidents: Incident[]
- *  - activeCount?: number
- *  - onView?: () => void       — navigate to /obs/incidents
- *  - onSelect?: (incident) => void
- */
 export function IncidentCenter({ incidents = [], activeCount, onView, onSelect }) {
   const count =
     activeCount ?? incidents.filter((i) => i.status !== "resolved").length;
 
   return (
-    <div className="rounded-xl border border-border bg-surface/40 backdrop-blur-sm flex flex-col">
+    <div className="rounded-xl border border-border bg-surface/40 backdrop-blur-sm flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
@@ -39,7 +33,6 @@ export function IncidentCenter({ incidents = [], activeCount, onView, onSelect }
             {count} active
           </span>
         </div>
-        {/* Safe button — only fires if onView is provided */}
         {onView && (
           <button
             onClick={onView}
@@ -50,8 +43,8 @@ export function IncidentCenter({ incidents = [], activeCount, onView, onSelect }
         )}
       </div>
 
-      {/* Scrollable list — max 4 rows then scroll */}
-      <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
+      {/* List — max height matches AIOpsPanel, scrollable */}
+      <div className="divide-y divide-border overflow-y-auto" style={{ maxHeight: "510px" }}>
         {incidents.length === 0 ? (
           <div className="px-4 py-8 text-center text-[11px] text-muted-foreground font-mono">
             No active incidents
@@ -63,7 +56,7 @@ export function IncidentCenter({ incidents = [], activeCount, onView, onSelect }
               onClick={() => onSelect && onSelect(inc)}
               className="px-4 py-3 hover:bg-surface-2/40 transition-colors cursor-pointer group flex items-center gap-3"
             >
-              <span className={cn("size-2 rounded-full shrink-0", sevDot[inc.severity] ?? "bg-muted-foreground")} />
+              <span className={cn("size-2 rounded-full shrink-0", sevDot[(inc.severity || "").toLowerCase()] ?? "bg-muted-foreground")} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[80px]">
@@ -72,7 +65,7 @@ export function IncidentCenter({ incidents = [], activeCount, onView, onSelect }
                   <span
                     className={cn(
                       "text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 rounded border shrink-0",
-                      statusStyle[inc.status] ?? statusStyle.open,
+                      statusStyle[(inc.status || "").toLowerCase()] ?? statusStyle.open,
                     )}
                   >
                     {inc.status ?? "open"}
@@ -82,9 +75,9 @@ export function IncidentCenter({ incidents = [], activeCount, onView, onSelect }
                   {inc.title ?? inc.message ?? "—"}
                 </div>
                 <div className="flex items-center gap-2 text-[10.5px] text-muted-foreground font-mono mt-0.5 flex-wrap">
-                  {inc.service && <span>{inc.service}</span>}
-                  {inc.team    && <><span>·</span><span>{inc.team}</span></>}
-                  {inc.owner   && <><span>·</span><span>{inc.owner}</span></>}
+                  {inc.service  && <span>{inc.service}</span>}
+                  {inc.team     && <><span>·</span><span>{inc.team}</span></>}
+                  {inc.owner    && <><span>·</span><span className="text-primary">{inc.owner}</span></>}
                   {inc.openedAt && <><span>·</span><span>{timeAgo(inc.openedAt)}</span></>}
                 </div>
               </div>

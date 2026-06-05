@@ -10,7 +10,7 @@ import {
 import {
   fetchOverviewMetrics, fetchAnomalies, fetchIncidents, fetchActivity,
   fetchThroughput, fetchServiceDistribution, fetchServiceHealth,
-  fetchRecentLogs, fetchLogsSince, fetchClusterStatus,
+  fetchRecentLogs, fetchLogsSince, fetchClusterStatus, explainAnomaly,
 } from "@/api/api";
 
 const REFRESH_MS = 5000;
@@ -36,12 +36,21 @@ export default function OverviewPage() {
   const [cluster,    setCluster]    = useState(null);
   const [logs,       setLogs]       = useState([]);
   const [paused,     setPaused]     = useState(false);
+  const [topExplanation, setTopExplanation] = useState(null);
 
   // Poll all non-log data every 5 s
   useEffect(() => {
     const loadAll = () => {
       fetchOverviewMetrics().then(setMetrics).catch(() => {});
-      fetchAnomalies(10).then(setAnomalies).catch(() => {});
+      fetchAnomalies(10).then((data) => {
+        setAnomalies(data);
+        // Auto-fetch explanation for the top anomaly
+        if (data && data[0]) {
+          explainAnomaly(data[0].id).then((expl) => {
+            setTopExplanation(expl);
+          }).catch(() => {});
+        }
+      }).catch(() => {});
       fetchIncidents().then(setIncidents).catch(() => {});
       fetchActivity(10).then(setActivity).catch(() => {});
       fetchThroughput(60).then(setThroughput).catch(() => {});
@@ -76,6 +85,12 @@ export default function OverviewPage() {
   }, [paused, logs]);
 
   const m = metrics || {};
+  const topAnomaly = anomalies[0] ? {
+    ...anomalies[0],
+    llmExplanation: topExplanation?.explanation || anomalies[0].llmExplanation || "Analyzing anomaly pattern…",
+    rootCause:      topExplanation?.rootCause      || anomalies[0].rootCause      || "Under investigation",
+    recommendation: topExplanation?.recommendation || anomalies[0].recommendation || "Review logs and escalate if needed.",
+  } : null;
 
   return (
     <DashboardLayout
@@ -148,12 +163,12 @@ export default function OverviewPage() {
 
         {/* AI Ops + Incidents */}
         <section
-          className="grid grid-cols-1 xl:grid-cols-3 gap-6 animate-slide-up"
+          className="grid grid-cols-1 xl:grid-cols-3 gap-6 animate-slide-up items-start"
           style={{ animationDelay: "60ms" }}
         >
           <div className="xl:col-span-2">
             <AIOpsPanel
-              anomaly={anomalies[0]}
+              anomaly={topAnomaly}
               meta={{ cost: "$0.0008", tokens: 412, latencyMs: 247 }}
             />
           </div>

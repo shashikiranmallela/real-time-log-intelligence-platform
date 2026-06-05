@@ -1,4 +1,4 @@
-import { Command, Bell, Filter } from "lucide-react";
+import { Command, Bell } from "lucide-react";
 import { useEffect, useState } from "react";
 
 /**
@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
  *  - hasAlerts?: boolean
  *  - searchValue?: string
  *  - onSearchChange?: (value: string) => void
+ *  - onBellClick?: () => void
  */
 export function TopBar({
   title,
@@ -18,6 +19,7 @@ export function TopBar({
   hasAlerts = true,
   searchValue,
   onSearchChange,
+  onBellClick,
 }) {
   const [time, setTime] = useState(() => new Date());
   useEffect(() => {
@@ -34,6 +36,7 @@ export function TopBar({
         )}
       </div>
 
+      {/* Global search — navigates to /obs/search */}
       <div className="flex-1 max-w-md ml-4">
         <div className="relative group">
           <Command className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
@@ -56,10 +59,10 @@ export function TopBar({
         >
           <span className="relative inline-flex">
             <span
-              className={`size-1.5 rounded-full pulse-dot ${
+              className={`size-1.5 rounded-full ${
                 systemStatus.ok
-                  ? "bg-sev-success text-sev-success"
-                  : "bg-sev-critical text-sev-critical"
+                  ? "bg-sev-success animate-pulse"
+                  : "bg-sev-critical animate-pulse"
               }`}
             />
           </span>
@@ -76,10 +79,12 @@ export function TopBar({
           {time.toISOString().slice(11, 19)} UTC
         </div>
 
-        <button className="size-8 rounded-md border border-border bg-surface/60 hover:bg-surface-2 transition-colors flex items-center justify-center">
-          <Filter className="size-3.5 text-muted-foreground" />
-        </button>
-        <button className="size-8 rounded-md border border-border bg-surface/60 hover:bg-surface-2 transition-colors flex items-center justify-center relative">
+        {/* Bell — navigates to Alert Rules */}
+        <button
+          onClick={onBellClick}
+          title="Alert Rules"
+          className="size-8 rounded-md border border-border bg-surface/60 hover:bg-surface-2 transition-colors flex items-center justify-center relative"
+        >
           <Bell className="size-3.5 text-muted-foreground" />
           {hasAlerts && (
             <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-sev-critical ring-2 ring-background" />
