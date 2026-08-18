@@ -77,7 +77,11 @@ export default function OverviewPage() {
       fetchLogsSince(sinceIso, 50)
         .then((newLogs) => {
           if (!newLogs || newLogs.length === 0) return;
-          setLogs((prev) => [...prev, ...newLogs].slice(-200));
+          setLogs((prev) => {
+            const existingIds = new Set(prev.map((l) => l.id));
+            const fresh = newLogs.filter((l) => !existingIds.has(l.id));
+            return [...prev, ...fresh].slice(-200);
+          });
         })
         .catch(() => {});
     }, 1000);

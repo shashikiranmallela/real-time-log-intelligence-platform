@@ -92,6 +92,10 @@ def _parse_explanation(explanation: str):
     if not root_cause and explanation:
         root_cause = explanation.split(".")[0].strip() + "."
     return root_cause, recommendation, expl_only or explanation
+
+
+def _call_groq(service: str, message: str, severity: str) -> str:
+    """Call Groq API to generate a unique explanation for a new anomaly pattern."""
     prompt = f"""You are an expert SRE analyzing a production anomaly.
 
 Anomaly details:
@@ -104,12 +108,15 @@ Respond with EXACTLY this structure (3 short points, max 60 words total):
 2. Business impact: <one sentence>
 3. Recommended action: <one sentence>"""
 
-    completion = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=150,
-    )
-    return completion.choices[0].message.content.strip()
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=150,
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        return f"1. Possible cause: Unable to reach AI service ({e}).\n2. Business impact: Manual review required.\n3. Recommended action: Check logs and escalate if error rate exceeds threshold."
 
 
 def _send_slack(anomaly: dict, explanation: str):
