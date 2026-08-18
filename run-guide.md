@@ -428,3 +428,18 @@ http://localhost:5173
 ```
 
 The exact frontend port can change if Vite finds the default port occupied.
+
+git push commands 
+cd C:\Users\malle\Desktop\RealTime-Log-Intelligence-Platform
+
+git status
+
+git branch(main)
+
+git add .
+
+git status
+
+git commit -m ("fix: update platform startup and integration")(command)
+
+git push origin main
